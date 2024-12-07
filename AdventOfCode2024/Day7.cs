@@ -22,43 +22,46 @@ internal static class Day7
             var operandCount = (numberCount - 1);
 
             List<string> combinations = [new string('*', operandCount)];
-            var allPlus = false;
 
-            while (!allPlus)
+            for (int len = 1; len <= operandCount; len++)
             {
+                for (int pos = 0; pos < operandCount; pos++)
+                {
+                    if (pos + len > operandCount)
+                        break;
 
+                    var combination = "";
+                    combination += new string('*', pos);
+                    combination += new string('+', len);
+                    combination += new string('*', Math.Max(operandCount - len - pos, 0));
+                    combinations.Add(combination);
+                }
             }
 
-            foreach (var combination in combinations)
+            for (var i = 0; i < combinations.Count(); i++)
             {
-                Console.WriteLine(combination);
+               var combination = combinations[i];
+               var rollingTotal = (long)numbers[0];
+
+               for (var k = 1; k < numbers.Count; k++)
+               {
+                   rollingTotal = combination[k - 1] == '*'
+                       ? rollingTotal * numbers[k]
+                       : rollingTotal + numbers[k];
+
+                   if (rollingTotal > answer)
+                       break;
+               }
+
+               if (rollingTotal == answer)
+               {
+                   Console.WriteLine(line);
+                   total += answer;
+                   break;
+               }
             }
-
-
-            //for (var i = 0; i < combinations.Length; i++)
-            //{
-            //    var combination = combinations[i];
-            //    var rollingTotal = (long)numbers[0];
-
-            //    for (var k = 1; k < numbers.Count; k++)
-            //    {
-            //        rollingTotal = combination[k - 1] == '*'
-            //            ? rollingTotal * numbers[k]
-            //            : rollingTotal + numbers[k];
-
-            //        if (rollingTotal > answer)
-            //            break;
-            //    }
-
-            //    if (rollingTotal == answer)
-            //    {
-            //        Console.WriteLine(line);
-            //        total += answer;
-            //        break;
-            //    }
-            //}
         }
 
-        //Console.WriteLine($"Part 1: {total}");
+        Console.WriteLine($"Part 1: {total}");
     }
 }
