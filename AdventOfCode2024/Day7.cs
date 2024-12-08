@@ -7,6 +7,8 @@ internal static class Day7
         var data = File.ReadAllLines("Data/Day7.txt");
 
         var total = 0L;
+        Dictionary<int, List<string>> combinationLookup = [];
+        const bool part1 = true;
 
         foreach (var line in data)
         {
@@ -18,50 +20,70 @@ internal static class Day7
                 .Select(x => int.Parse(x))
                 .ToList();
 
-            var numberCount = numbers.Count();
-            var operandCount = (numberCount - 1);
+            var operandCount = (numbers.Count - 1);
 
-            List<string> combinations = [new string('*', operandCount)];
-
-            for (int len = 1; len <= operandCount; len++)
+            if (!combinationLookup.TryGetValue(operandCount, out var combinations))
             {
-                for (int pos = 0; pos < operandCount; pos++)
-                {
-                    if (pos + len > operandCount)
-                        break;
+                combinations = [];
+                if (part1)
+                    GenerateCombinationsPart1(combinations, "", operandCount);
+                else
+                    GenerateCombinationsPart2(combinations, "", operandCount);
 
-                    var combination = "";
-                    combination += new string('*', pos);
-                    combination += new string('+', len);
-                    combination += new string('*', Math.Max(operandCount - len - pos, 0));
-                    combinations.Add(combination);
-                }
+                combinationLookup.Add(operandCount, combinations);
             }
 
-            for (var i = 0; i < combinations.Count(); i++)
+            for (var i = 0; i < combinations.Count; i++)
             {
-               var combination = combinations[i];
-               var rollingTotal = (long)numbers[0];
+                var combination = combinations[i];
+                var rollingTotal = (long)numbers[0];
 
-               for (var k = 1; k < numbers.Count; k++)
-               {
-                   rollingTotal = combination[k - 1] == '*'
-                       ? rollingTotal * numbers[k]
-                       : rollingTotal + numbers[k];
+                for (var k = 1; k < numbers.Count; k++)
+                {
+                    if (combination[k - 1] == '*')
+                        rollingTotal *= numbers[k];
+                    else if (combination[k - 1] == '+')
+                        rollingTotal += numbers[k];
+                    else
+                        rollingTotal = long.Parse($"{rollingTotal}{numbers[k]}");
 
-                   if (rollingTotal > answer)
-                       break;
-               }
+                    if (rollingTotal > answer)
+                        break;
+                }
 
-               if (rollingTotal == answer)
-               {
-                   Console.WriteLine(line);
-                   total += answer;
-                   break;
-               }
+                if (rollingTotal == answer)
+                {
+                    total += answer;
+                    break;
+                }
             }
         }
 
-        Console.WriteLine($"Part 1: {total}");
+        Console.WriteLine($"Part {(part1 ? "1" : "2")}: {total}");
+    }
+
+    static void GenerateCombinationsPart1(List<string> combinations, string current, int maxLength)
+    {
+        if (current.Length == maxLength)
+        {
+            combinations.Add(current);
+            return;
+        }
+
+        GenerateCombinationsPart1(combinations, current + "*", maxLength);
+        GenerateCombinationsPart1(combinations, current + "+", maxLength);
+    }
+
+    static void GenerateCombinationsPart2(List<string> combinations, string current, int maxLength)
+    {
+        if (current.Length == maxLength)
+        {
+            combinations.Add(current);
+            return;
+        }
+
+        GenerateCombinationsPart2(combinations, current + "*", maxLength);
+        GenerateCombinationsPart2(combinations, current + "+", maxLength);
+        GenerateCombinationsPart2(combinations, current + "|", maxLength);
     }
 }
