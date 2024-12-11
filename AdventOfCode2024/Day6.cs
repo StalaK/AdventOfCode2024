@@ -11,6 +11,8 @@ internal static class Day6
         var xMax = mapData[0].Length;
         var yMax = mapData.Length;
 
+        List<(int x, int y)> pathCoordinates = [];
+
         var inArea = true;
         var count = 1;
 
@@ -35,6 +37,7 @@ internal static class Day6
                     if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
                     {
                         mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                        pathCoordinates.Add((mapState.CurrentPosition.x, mapState.CurrentPosition.y));
                         count++;
                     }
 
@@ -57,6 +60,7 @@ internal static class Day6
                     if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
                     {
                         mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                        pathCoordinates.Add((mapState.CurrentPosition.x, mapState.CurrentPosition.y));
                         count++;
                     }
 
@@ -79,6 +83,7 @@ internal static class Day6
                     if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
                     {
                         mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                        pathCoordinates.Add((mapState.CurrentPosition.x, mapState.CurrentPosition.y));
                         count++;
                     }
 
@@ -101,6 +106,7 @@ internal static class Day6
                     if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
                     {
                         mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                        pathCoordinates.Add((mapState.CurrentPosition.x, mapState.CurrentPosition.y));
                         count++;
                     }
 
@@ -112,137 +118,132 @@ internal static class Day6
 
         var loopCount = 0;
 
-        for (int y = 0; y < yMax; y++)
+        foreach (var step in pathCoordinates)
         {
-            for (int x = 0; x < xMax; x++)
+            mapState = SetupMap(mapData);
+
+            mapState.Map[step.x, step.y] = '#';
+
+            inArea = true;
+            var isLoop = false;
+            int changedDirectionCount = 0;
+
+            while (inArea && !isLoop)
             {
-                mapState = SetupMap(mapData);
-
-                if (mapState.Map[x, y] != '.')
-                    continue;
-
-                mapState.Map[x, y] = '#';
-
-                inArea = true;
-                var isLoop = false;
-                int changedDirectionCount = 0;
-
-                while (inArea && !isLoop)
+                switch (mapState.CurrentDirection)
                 {
-                    switch (mapState.CurrentDirection)
-                    {
-                        case Direction.Up:
-                            if (mapState.CurrentPosition.y < 1)
-                            {
-                                inArea = false;
-                                break;
-                            }
-
-                            if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y - 1] == '#')
-                            {
-                                mapState.CurrentDirection = Direction.Right;
-                                changedDirectionCount++;
-                                break;
-                            }
-
-                            mapState.CurrentPosition = (mapState.CurrentPosition.x, mapState.CurrentPosition.y - 1);
-                            if (changedDirectionCount >= 4)
-                            {
-                                isLoop = true;
-                                loopCount++;
-                            }
-                            if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
-                            {
-                                mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
-                                changedDirectionCount = 0;
-                            }
-
+                    case Direction.Up:
+                        if (mapState.CurrentPosition.y < 1)
+                        {
+                            inArea = false;
                             break;
+                        }
 
-                        case Direction.Right:
-                            if (mapState.CurrentPosition.x + 1 == xMax)
-                            {
-                                inArea = false;
-                                break;
-                            }
-
-                            if (mapState.Map[mapState.CurrentPosition.x + 1, mapState.CurrentPosition.y] == '#')
-                            {
-                                changedDirectionCount++;
-                                mapState.CurrentDirection = Direction.Down;
-                                break;
-                            }
-
-                            mapState.CurrentPosition = (mapState.CurrentPosition.x + 1, mapState.CurrentPosition.y);
-                            if (changedDirectionCount >= 4)
-                            {
-                                isLoop = true;
-                                loopCount++;
-                            }
-                            if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
-                            {
-                                mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
-                                changedDirectionCount = 0;
-                            }
-
+                        if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y - 1] == '#')
+                        {
+                            mapState.CurrentDirection = Direction.Right;
+                            changedDirectionCount++;
                             break;
+                        }
 
-                        case Direction.Down:
-                            if (mapState.CurrentPosition.y + 1 == yMax)
-                            {
-                                inArea = false;
-                                break;
-                            }
+                        mapState.CurrentPosition = (mapState.CurrentPosition.x, mapState.CurrentPosition.y - 1);
+                        if (changedDirectionCount >= 4)
+                        {
+                            isLoop = true;
+                            loopCount++;
+                        }
+                        if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
+                        {
+                            mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                            changedDirectionCount = 0;
+                        }
 
-                            if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y + 1] == '#')
-                            {
-                                changedDirectionCount++;
-                                mapState.CurrentDirection = Direction.Left;
-                                break;
-                            }
+                        break;
 
-                            mapState.CurrentPosition = (mapState.CurrentPosition.x, mapState.CurrentPosition.y + 1);
-                            if (changedDirectionCount >= 4)
-                            {
-                                isLoop = true;
-                                loopCount++;
-                            }
-                            if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
-                            {
-                                mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
-                                changedDirectionCount = 0;
-                            }
-
+                    case Direction.Right:
+                        if (mapState.CurrentPosition.x + 1 == xMax)
+                        {
+                            inArea = false;
                             break;
+                        }
 
-                        case Direction.Left:
-                            if (mapState.CurrentPosition.x < 1)
-                            {
-                                inArea = false;
-                                break;
-                            }
-
-                            if (mapState.Map[mapState.CurrentPosition.x - 1, mapState.CurrentPosition.y] == '#')
-                            {
-                                changedDirectionCount++;
-                                mapState.CurrentDirection = Direction.Up;
-                                break;
-                            }
-
-                            mapState.CurrentPosition = (mapState.CurrentPosition.x - 1, mapState.CurrentPosition.y);
-                            if (changedDirectionCount >= 4)
-                            {
-                                isLoop = true;
-                                loopCount++;
-                            }
-                            if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
-                            {
-                                mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
-                                changedDirectionCount = 0;
-                            }
-
+                        if (mapState.Map[mapState.CurrentPosition.x + 1, mapState.CurrentPosition.y] == '#')
+                        {
+                            changedDirectionCount++;
+                            mapState.CurrentDirection = Direction.Down;
                             break;
-                    }
+                        }
+
+                        mapState.CurrentPosition = (mapState.CurrentPosition.x + 1, mapState.CurrentPosition.y);
+                        if (changedDirectionCount >= 4)
+                        {
+                            isLoop = true;
+                            loopCount++;
+                        }
+                        if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
+                        {
+                            mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                            changedDirectionCount = 0;
+                        }
+
+                        break;
+
+                    case Direction.Down:
+                        if (mapState.CurrentPosition.y + 1 == yMax)
+                        {
+                            inArea = false;
+                            break;
+                        }
+
+                        if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y + 1] == '#')
+                        {
+                            changedDirectionCount++;
+                            mapState.CurrentDirection = Direction.Left;
+                            break;
+                        }
+
+                        mapState.CurrentPosition = (mapState.CurrentPosition.x, mapState.CurrentPosition.y + 1);
+                        if (changedDirectionCount >= 4)
+                        {
+                            isLoop = true;
+                            loopCount++;
+                        }
+
+                        if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
+                        {
+                            mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                            changedDirectionCount = 0;
+                        }
+
+                        break;
+
+                    case Direction.Left:
+                        if (mapState.CurrentPosition.x < 1)
+                        {
+                            inArea = false;
+                            break;
+                        }
+
+                        if (mapState.Map[mapState.CurrentPosition.x - 1, mapState.CurrentPosition.y] == '#')
+                        {
+                            changedDirectionCount++;
+                            mapState.CurrentDirection = Direction.Up;
+                            break;
+                        }
+
+                        mapState.CurrentPosition = (mapState.CurrentPosition.x - 1, mapState.CurrentPosition.y);
+                        if (changedDirectionCount >= 4)
+                        {
+                            isLoop = true;
+                            loopCount++;
+                        }
+                        if (mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] != 'X')
+                        {
+                            mapState.Map[mapState.CurrentPosition.x, mapState.CurrentPosition.y] = 'X';
+                            changedDirectionCount = 0;
+                        }
+
+                        break;
                 }
             }
         }
