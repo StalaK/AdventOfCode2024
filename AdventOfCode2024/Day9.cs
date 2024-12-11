@@ -26,34 +26,34 @@ internal static class Day9
 
         List<string> formatPart2 = [.. format];
 
-        //for (var i = 0; i < format.Count; i++)
-        //{
-        //    if (format[i] != ".")
-        //        continue;
+        for (var i = 0; i < format.Count; i++)
+        {
+            if (format[i] != ".")
+                continue;
 
-        //    for (var j = format.Count - 1; j > i; j--)
-        //    {
-        //        if (format[j] == ".")
-        //            continue;
+            for (var j = format.Count - 1; j > i; j--)
+            {
+                if (format[j] == ".")
+                    continue;
 
-        //        format[i] = format[j];
-        //        format[j] = ".";
-        //        break;
-        //    }
-        //}
+                format[i] = format[j];
+                format[j] = ".";
+                break;
+            }
+        }
 
         ulong checksum = 0;
-        //var numbers = format
-        //    .Where(x => x != ".")
-        //    .Select(x => int.Parse(x))
-        //    .ToList();
+        var numbers = format
+            .Where(x => x != ".")
+            .Select(x => int.Parse(x))
+            .ToList();
 
-        //for (var i = 0; i < numbers.Count; i++)
-        //{
-        //    checksum += (ulong)(numbers[i] * i);
-        //}
+        for (var i = 0; i < numbers.Count; i++)
+        {
+            checksum += (ulong)(numbers[i] * i);
+        }
 
-        //Console.WriteLine($"Part 1: {checksum}");
+        Console.WriteLine($"Part 1: {checksum}");
 
         for (var i = formatPart2.Count - 1; i > 0; i--)
         {
@@ -87,7 +87,6 @@ internal static class Day9
                     space++;
                     nextSpace = formatPart2[j + space];
 
-                    //  if (nextSpace == ".")
                     spaceFound = space == length;
                 }
 
@@ -107,7 +106,7 @@ internal static class Day9
         }
 
         checksum = 0;
-        var numbers = formatPart2.ConvertAll(x => x == "." ? 0 : int.Parse(x));
+        numbers = formatPart2.ConvertAll(x => x == "." ? 0 : int.Parse(x));
 
         for (var i = 0; i < numbers.Count; i++)
         {
