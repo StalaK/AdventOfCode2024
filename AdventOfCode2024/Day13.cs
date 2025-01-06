@@ -8,7 +8,7 @@ internal static class Day13
             .Where(x => !string.IsNullOrEmpty(x))
             .ToList();
 
-        //Part1(machines);
+        Part1(machines);
         Part2(machines);
     }
 
@@ -16,90 +16,27 @@ internal static class Day13
     {
         const int A_COST = 3;
         const int B_COST = 1;
+        const long MISCALC = 0;
 
-        var tokenCount = 0;
+        var tokenCount = 0L;
 
         for (int i = 0; i < machines.Count; i += 3)
         {
-            var xStart = machines[i].IndexOf("X+") + 2;
-            var xLength = machines[i].IndexOf(',') - xStart;
-            var x = machines[i].Substring(xStart, xLength);
+            var aButton = GetAButton(machines, i);
+            var bButton = GetBButton(machines, i);
+            var prize = GetPrizeLocation(machines, i, MISCALC);
 
-            var yStart = machines[i].IndexOf("Y+") + 2;
-            var y = machines[i][yStart..];
+            var aButtonPresses = GetAButtonPresses(aButton, bButton, prize);
 
-            (int x, int y) aButton = (int.Parse(x), int.Parse(y));
+            if (aButtonPresses < 0)
+                continue;
 
-            xStart = machines[i + 1].IndexOf("X+") + 2;
-            xLength = machines[i + 1].IndexOf(',') - xStart;
-            x = machines[i + 1].Substring(xStart, xLength);
+            var bButtonPresses = GetBButtonPresses(aButton, bButton, prize, aButtonPresses);
 
-            yStart = machines[i + 1].IndexOf("Y+") + 2;
-            y = machines[i + 1][yStart..];
+            if (bButtonPresses < 0)
+                continue;
 
-            (int x, int y) bButton = (int.Parse(x), int.Parse(y));
-
-            xStart = machines[i + 2].IndexOf("X=") + 2;
-            xLength = machines[i + 2].IndexOf(',') - xStart;
-            x = machines[i + 2].Substring(xStart, xLength);
-
-            yStart = machines[i + 2].IndexOf("Y=") + 2;
-            y = machines[i + 2][yStart..];
-
-            (int x, int y) prize = (int.Parse(x), int.Parse(y));
-
-            Queue<(int aPress, int bPress, int xTotal, int yTotal)> moveQueue = [];
-            moveQueue.Enqueue((0, 0, 0, 0));
-
-            Dictionary<(int, int), bool> visitedStates = [];
-            visitedStates.Add((0, 0), true);
-
-            var minTokens = int.MaxValue;
-
-            while (moveQueue.Count > 0)
-            {
-                var (aPress, bPress, xTotal, yTotal) = moveQueue.Dequeue();
-
-                // a button
-                if (aPress + 1 > 100)
-                    continue;
-
-                if (!visitedStates.ContainsKey((aPress + 1, bPress)))
-                {
-
-                    visitedStates.Add((aPress + 1, bPress), true);
-
-                    if (xTotal + aButton.x == prize.x && yTotal + aButton.y == prize.y)
-                    {
-                        var thisMin = ((aPress + 1) * A_COST) + (bPress * B_COST);
-                        minTokens = thisMin < minTokens ? thisMin : minTokens;
-                    }
-
-                    if (xTotal + aButton.x < prize.x && yTotal + aButton.y < prize.y)
-                        moveQueue.Enqueue((aPress + 1, bPress, xTotal + aButton.x, yTotal + aButton.y));
-                }
-
-                // b button
-                if (bPress + 1 > 100)
-                    continue;
-
-                if (!visitedStates.ContainsKey((aPress, bPress + 1)))
-                {
-                    visitedStates.Add((aPress, bPress + 1), true);
-
-                    if (xTotal + bButton.x == prize.x && yTotal + bButton.y == prize.y)
-                    {
-                        var thisMin = (aPress * A_COST) + ((bPress + 1) * B_COST);
-                        minTokens = thisMin < minTokens ? thisMin : minTokens;
-                    }
-
-                    if (xTotal + bButton.x < prize.x && yTotal + bButton.y < prize.y)
-                        moveQueue.Enqueue((aPress, bPress + 1, xTotal + bButton.x, yTotal + bButton.y));
-                }
-            }
-
-            if (minTokens != int.MaxValue)
-                tokenCount += minTokens;
+            tokenCount += (aButtonPresses * A_COST) + (bButtonPresses * B_COST);
         }
 
         Console.WriteLine($"Part 1: {tokenCount}");
