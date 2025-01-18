@@ -8,130 +8,191 @@ internal static class Day16
         var map = File.ReadAllLines("Data/Day16.txt");
 
         var minScore = int.MaxValue;
-        Dictionary<(Point, char), int> visitedLocations = [];
-        Stack<Location> toExplore = [];
-        
+        Dictionary<(Point, char), int> visitedLocations = []; // gScore
+        Dictionary<Point, (Point Point, char Direction)> cameFrom = [];
+        Dictionary<Point, List<Point>> possibleRoutes = [];
+        PriorityQueue<Location, int> toExplore = new();
+        Point start = null!;
+        Point finish = null!;
+
+        List<Point> bestPathNodes = [];
+
         for(int y = 0; y < map.Length; y++)
         {
             for(int x = 0; x < map[y].Length; x++)
             {
                 if (map[y][x] == 'S')
-                    toExplore.Push(new(new Point(x, y), '>', 0));
-                
-                if (toExplore.Count > 0)
+                    start = new Point(x, y);   
+
+                if (map[y][x] == 'E')
+                    finish = new Point(x, y);
+
+                if (start is not null && finish is not null)
                     break;
             }
 
-            if (toExplore.Count > 0)
+            if (start is not null && finish is not null)
                 break;
         }
 
-        while(toExplore.Count > 0)
+        toExplore.Enqueue(new(start!, '>', 0), 0);
+        visitedLocations[(start!, '>')] = 0;
+
+        while (toExplore.Count > 0)
         {
-            var currentLocation = toExplore.Pop();
-            //System.Console.WriteLine($"Exploring: ({currentLocation.Point.X}, {currentLocation.Point.Y}). Queued: {toExplore.Count()}");
+            var currentLocation = toExplore.Dequeue();
 
-            if (map[currentLocation.Point.Y - 1][currentLocation.Point.X] == 'E')
+            if (currentLocation.Point == finish)
             {
-                var sameDirection = currentLocation.Direction == '^';
-                var totalScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-                minScore = Math.Min(minScore, totalScore);
-                continue;
-            }
-
-            if (map[currentLocation.Point.Y + 1][currentLocation.Point.X] == 'E')
-            {
-                var sameDirection = currentLocation.Direction == 'v';
-                var totalScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-                minScore = Math.Min(minScore, totalScore);
-                continue;
-            }
-
-            if (map[currentLocation.Point.Y][currentLocation.Point.X - 1] == 'E')
-            {
-                var sameDirection = currentLocation.Direction == '<';
-                var totalScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-                minScore = Math.Min(minScore, totalScore);
-                continue;
-            }
-
-            if (map[currentLocation.Point.Y][currentLocation.Point.X + 1] == 'E')
-            {
-                var sameDirection = currentLocation.Direction == '>';
-                var totalScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-                minScore = Math.Min(minScore, totalScore);
-                continue;
-            }
-
-            if (map[currentLocation.Point.Y - 1][currentLocation.Point.X] != '#' && currentLocation.Direction != 'v')
-            {   
-                var sameDirection = currentLocation.Direction == '^';
-                var currentScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-
-                if (visitedLocations.TryGetValue((new Point(currentLocation.Point.X, currentLocation.Point.Y - 1), '^'), out var previousVisitScore))
+                var pathScore = RebuildPath(cameFrom, start!, currentLocation.Point, currentLocation.Direction);
+                
+                if (pathScore <= minScore)
                 {
-                    if (previousVisitScore <= currentScore)
-                        continue;
-                    
-                    visitedLocations[(new Point(currentLocation.Point.X, currentLocation.Point.Y - 1), '^')] = currentScore;
+                    if (pathScore != minScore)
+                        bestPathNodes = [start, finish];
+
+                    //bestPathNodes = GetBestPathNodes(bestPathNodes, possibleRoutes, start!, currentLocation.Point);
+                    minScore = pathScore;
                 }
 
-                toExplore.Push(new(new Point(currentLocation.Point.X, currentLocation.Point.Y - 1), '^', currentScore));
+                continue;
             }
+            
+            foreach (var neighbour in GetNeighbours(map, currentLocation.Point, currentLocation.Direction))
+            {
+                var tentativeScore = currentLocation.Score + 1 + (currentLocation.Direction == neighbour.Direction ? 0 : 1000);
 
-            if (map[currentLocation.Point.Y + 1][currentLocation.Point.X] != '#' && currentLocation.Direction != '^')
-            {   
-                var sameDirection = currentLocation.Direction == 'v';
-                var currentScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-
-                if (visitedLocations.TryGetValue((new Point(currentLocation.Point.X, currentLocation.Point.Y + 1), 'v'), out var previousVisitScore))
+                if (visitedLocations.TryGetValue((neighbour.Point, neighbour.Direction), out var previousScore))
                 {
-                    if (previousVisitScore <= currentScore)
-                        continue;
-                    
-                    visitedLocations[(new Point(currentLocation.Point.X, currentLocation.Point.Y + 1), 'v')] = currentScore;
+                    if (tentativeScore < previousScore)
+                    {
+                        cameFrom[neighbour.Point] = (currentLocation.Point, currentLocation.Direction);
+                        visitedLocations[(neighbour.Point, neighbour.Direction)] = tentativeScore;
+                        toExplore.Enqueue(new(neighbour.Point, neighbour.Direction, tentativeScore), tentativeScore);
+                    }
                 }
-
-                toExplore.Push(new(new Point(currentLocation.Point.X, currentLocation.Point.Y + 1), 'v', currentScore));
-            }
-
-            if (map[currentLocation.Point.Y][currentLocation.Point.X - 1] != '#' && currentLocation.Direction != '>')
-            {   
-                var sameDirection = currentLocation.Direction == '<';
-                var currentScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-
-                if (visitedLocations.TryGetValue((new Point(currentLocation.Point.X - 1, currentLocation.Point.Y), '<'), out var previousVisitScore))
+                else
                 {
-                    if (previousVisitScore <= currentScore)
-                        continue;
+                    visitedLocations.Add((neighbour.Point, neighbour.Direction), tentativeScore);
 
-                    visitedLocations[(new Point(currentLocation.Point.X - 1, currentLocation.Point.Y), '<')] = currentScore;
+                    if (cameFrom.TryGetValue(neighbour.Point, out var currentPrev))
+                    {
+                        var existingScore = RebuildPath(cameFrom, start!, currentPrev.Point, currentPrev.Direction);
+
+                        if (tentativeScore < existingScore)
+                        {
+                            cameFrom[neighbour.Point] = (currentLocation.Point, currentLocation.Direction);
+                            toExplore.Enqueue(new(neighbour.Point, neighbour.Direction, tentativeScore), tentativeScore);
+                        }
+                    }
+                    else
+                    {
+                        cameFrom.Add(neighbour.Point, (currentLocation.Point, currentLocation.Direction));
+                        toExplore.Enqueue(new(neighbour.Point, neighbour.Direction, tentativeScore), tentativeScore);
+                    }
                 }
-
-                toExplore.Push(new(new Point(currentLocation.Point.X - 1, currentLocation.Point.Y), '<', currentScore));
             }
-
-            if (map[currentLocation.Point.Y][currentLocation.Point.X + 1] != '#' && currentLocation.Direction != '<')
-            {   
-                var sameDirection = currentLocation.Direction == '>';
-                var currentScore = currentLocation.Score + 1 + (sameDirection ? 0 : 1000);
-
-                if (visitedLocations.TryGetValue((new Point(currentLocation.Point.X + 1, currentLocation.Point.Y), '>'), out var previousVisitScore))
-                {
-                    if (previousVisitScore <= currentScore)
-                        continue;
-
-                    visitedLocations[(new Point(currentLocation.Point.X + 1, currentLocation.Point.Y), '>')] = currentScore;
-                }
-
-                toExplore.Push(new(new Point(currentLocation.Point.X + 1, currentLocation.Point.Y), '>', currentScore));
-            }
-
-            visitedLocations.TryAdd((currentLocation.Point, currentLocation.Direction), currentLocation.Score);
+            
+            if (toExplore.Count == 0)
+                break;
         }
 
-        // 100520 too high
         Console.WriteLine($"Part 1: {minScore}");
+        Console.WriteLine($"Part 2: {bestPathNodes.Count}");
+    }
+
+    private static List<(Point Point, char Direction)> GetNeighbours(string[] map, Point current, char direction)
+    {
+        List<(Point point, char direction)> neighbours = [];
+
+        if (map[current.Y - 1][current.X] != '#' && direction != 'v')
+            neighbours.Add((new Point(current.X, current.Y - 1), '^'));
+        
+        if (map[current.Y + 1][current.X] != '#' && direction != '^')
+            neighbours.Add((new Point(current.X, current.Y + 1), 'v'));
+        
+        if (map[current.Y][current.X - 1] != '#' && direction != '>')
+            neighbours.Add((new Point(current.X - 1, current.Y), '<'));
+        
+        if (map[current.Y][current.X + 1] != '#' && direction != '<')
+            neighbours.Add((new Point(current.X + 1, current.Y), '>'));
+
+        return neighbours;
+    }
+
+    private static int RebuildPath(
+        Dictionary<Point, (Point Point, char Direction)> cameFrom,
+        Point startPoint,
+        Point current,
+        char direction)
+    {
+        var score = 0;
+
+        while (current != startPoint)
+        {
+            var previous = cameFrom[current];
+
+            if (previous.Point.X == current.X)
+            {
+                if (previous.Point.Y < current.Y)
+                {
+                    if (direction != 'v')
+                        score += 1000;
+
+                    direction = 'v';
+                }
+                else
+                {
+                    if (direction != '^')
+                        score += 1000;
+                    
+                    direction = '^';
+                }
+            }
+            else
+            {
+                if (previous.Point.X < current.X)
+                {
+                    if (direction != '>')
+                        score += 1000;
+
+                    direction = '>';
+                }
+                else
+                {
+                    if (direction != '<')
+                        score += 1000;
+
+                    direction = '<';
+                }
+            }
+
+            current = previous.Point;
+            score++;
+        }
+
+        if (direction != '>')
+            score += 1000;
+
+        return score;
+    }
+
+    private static List<Point> GetBestPathNodes(
+        List<Point> bestPathNodes,
+        Dictionary<Point, List<Point>> cameFrom,
+        Point startPoint,
+        Point current)
+    {
+        foreach (var node in cameFrom[current])
+        {
+            if (bestPathNodes.Contains(node) || node == startPoint)
+                continue;
+
+            bestPathNodes.Add(node);
+            bestPathNodes.AddRange(GetBestPathNodes(bestPathNodes, cameFrom, startPoint, node));
+        }
+
+        return bestPathNodes.Distinct().ToList();
     }
 
     private record Point(int X, int Y);
