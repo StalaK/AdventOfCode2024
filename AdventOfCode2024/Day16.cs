@@ -8,7 +8,7 @@ internal static class Day16
         var map = File.ReadAllLines("Data/Day16.txt");
 
         var minScore = int.MaxValue;
-        Dictionary<(Point, char), int> visitedLocations = []; // gScore
+        Dictionary<(Point, char), int> visitedLocations = [];
         Dictionary<Point, (Point Point, char Direction)> cameFrom = [];
         Dictionary<Point, List<Point>> possibleRoutes = [];
         PriorityQueue<Location, int> toExplore = new();
@@ -51,8 +51,9 @@ internal static class Day16
                     if (pathScore != minScore)
                         bestPathNodes = [start, finish];
 
-                    //bestPathNodes = GetBestPathNodes(bestPathNodes, possibleRoutes, start!, currentLocation.Point);
+                    bestPathNodes = GetBestPathNodes(bestPathNodes, possibleRoutes, start!, currentLocation.Point);
                     minScore = pathScore;
+                    Draw(map, start!, finish, bestPathNodes);
                 }
 
                 continue;
@@ -62,13 +63,18 @@ internal static class Day16
             {
                 var tentativeScore = currentLocation.Score + 1 + (currentLocation.Direction == neighbour.Direction ? 0 : 1000);
 
+                if (possibleRoutes.TryGetValue(neighbour.Point, out var currentRoutes))
+                    currentRoutes.Add(currentLocation.Point);
+                else
+                    possibleRoutes.Add(neighbour.Point, [currentLocation.Point]);
+
                 if (visitedLocations.TryGetValue((neighbour.Point, neighbour.Direction), out var previousScore))
                 {
-                    if (tentativeScore < previousScore)
+                    if (tentativeScore <= previousScore)
                     {
                         cameFrom[neighbour.Point] = (currentLocation.Point, currentLocation.Direction);
                         visitedLocations[(neighbour.Point, neighbour.Direction)] = tentativeScore;
-                        toExplore.Enqueue(new(neighbour.Point, neighbour.Direction, tentativeScore), tentativeScore);
+                        toExplore.Enqueue(new(neighbour.Point, neighbour.Direction, tentativeScore), tentativeScore);   
                     }
                 }
                 else
@@ -79,7 +85,7 @@ internal static class Day16
                     {
                         var existingScore = RebuildPath(cameFrom, start!, currentPrev.Point, currentPrev.Direction);
 
-                        if (tentativeScore < existingScore)
+                        if (tentativeScore <= existingScore)
                         {
                             cameFrom[neighbour.Point] = (currentLocation.Point, currentLocation.Direction);
                             toExplore.Enqueue(new(neighbour.Point, neighbour.Direction, tentativeScore), tentativeScore);
@@ -98,7 +104,39 @@ internal static class Day16
         }
 
         Console.WriteLine($"Part 1: {minScore}");
-        Console.WriteLine($"Part 2: {bestPathNodes.Count}");
+        Console.WriteLine($"Part 2: {bestPathNodes.Count}"); // 573 too low
+    }
+
+    private static void Draw(string[] map, Point start, Point finish, List<Point> bestPathNodes)
+    {
+        for (int y = 0; y < map.Length; y++)
+        {
+            for (int x = 0; x < map[y].Length; x++)
+            {
+                if (start.X == x && start.Y == y)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.Write('S');
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                else if (finish.X == x && finish.Y == y)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.Write('E');
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                else if (bestPathNodes.Any(p => p.X == x && p.Y == y))
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.Write('O');
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                else
+                    Console.Write(map[y][x]);
+            }
+
+            Console.WriteLine();
+        }
     }
 
     private static List<(Point Point, char Direction)> GetNeighbours(string[] map, Point current, char direction)
