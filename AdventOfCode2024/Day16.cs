@@ -30,30 +30,30 @@ internal static class Day16
                 if (start is not null && finish is not null)
                     break;
             }
-
-            if (start is not null && finish is not null)
-                break;
         }
 
-        toExplore.Enqueue(new(start!, '>', 0), 0);
-        visitedLocations[(start!, '>')] = 0;
+        if (start is null || finish is null)
+            throw new InvalidOperationException("Start or finish point not found in the map.");
+
+        toExplore.Enqueue(new(start, '>', 0), 0);
+        visitedLocations[(start, '>')] = 0;
 
         while (toExplore.Count > 0)
         {
             var currentLocation = toExplore.Dequeue();
-
+            Console.WriteLine($"Exploring {currentLocation.Point.X}, {currentLocation.Point.Y} with direction {currentLocation.Direction} and score {currentLocation.Score}");
             if (currentLocation.Point == finish)
             {
-                var pathScore = RebuildPath(cameFrom, start!, currentLocation.Point, currentLocation.Direction);
+                var pathScore = RebuildPath(cameFrom, start, currentLocation.Point, currentLocation.Direction);
                 
                 if (pathScore <= minScore)
                 {
                     if (pathScore != minScore)
                         bestPathNodes = [start, finish];
 
-                    bestPathNodes = GetBestPathNodes(bestPathNodes, possibleRoutes, start!, currentLocation.Point);
+                    bestPathNodes = GetBestPathNodes(bestPathNodes, possibleRoutes, start, currentLocation.Point);
                     minScore = pathScore;
-                    Draw(map, start!, finish, bestPathNodes);
+                    Draw(map, start, finish, bestPathNodes);
                 }
 
                 continue;
@@ -83,7 +83,8 @@ internal static class Day16
 
                     if (cameFrom.TryGetValue(neighbour.Point, out var currentPrev))
                     {
-                        var existingScore = RebuildPath(cameFrom, start!, currentPrev.Point, currentPrev.Direction);
+                        var existingScore = RebuildPath(cameFrom, start, neighbour.Point, GetDirection(currentPrev.Point, neighbour.Point));
+                        //var existingScore = RebuildPath(cameFrom, start, currentPrev.Point, currentPrev.Direction);
 
                         if (tentativeScore <= existingScore)
                         {
@@ -98,13 +99,18 @@ internal static class Day16
                     }
                 }
             }
-            
-            if (toExplore.Count == 0)
-                break;
         }
 
         Console.WriteLine($"Part 1: {minScore}");
         Console.WriteLine($"Part 2: {bestPathNodes.Count}"); // 573 too low
+    }
+
+    private static char GetDirection(Point current, Point next)
+    {
+        if (current.X == next.X)
+            return current.Y < next.Y ? '^' : 'v';
+        
+        return current.X < next.X ? '>' : '<';
     }
 
     private static void Draw(string[] map, Point start, Point finish, List<Point> bestPathNodes)
