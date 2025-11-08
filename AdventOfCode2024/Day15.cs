@@ -120,6 +120,7 @@ internal static class Day15
             'v' => new Point(movingObject.X, movingObject.Y + 1),
             '<' => new Point(movingObject.X - 1, movingObject.Y),
             '>' => new Point(movingObject.X + 1, movingObject.Y),
+            _ => throw new NotImplementedException(),
         };
 
         if (map[newPosition.Y][newPosition.X] == '#')
@@ -141,6 +142,7 @@ internal static class Day15
             'v' => new Point(movingObject.X, movingObject.Y + 1),
             '<' => new Point(movingObject.X - 1, movingObject.Y),
             '>' => new Point(movingObject.X + 1, movingObject.Y),
+            _ => throw new NotImplementedException(),
         };
 
         if (map[newPosition.Y][newPosition.X] == '#' || (!isRobot && map[newPosition.Y][newPosition.X + 1] == '#'))
@@ -177,10 +179,11 @@ internal static class Day15
 
         movingObject = direction switch
         {
-            '^' => new  (movingObject.X, movingObject.Y - 1),
+            '^' => new(movingObject.X, movingObject.Y - 1),
             'v' => new Point(movingObject.X, movingObject.Y + 1),
             '<' => new Point(movingObject.X - 1, movingObject.Y),
             '>' => new Point(movingObject.X + 1, movingObject.Y),
+            _ => throw new NotImplementedException(),
         };
 
         var connectedObject = boxes.FirstOrDefault(b => b.X == movingObject.X && b.Y == movingObject.Y);
@@ -230,10 +233,11 @@ internal static class Day15
 
         movingObject = direction switch
         {
-            '^' => new  (movingObject.X, movingObject.Y - 1),
+            '^' => new(movingObject.X, movingObject.Y - 1),
             'v' => new Point(movingObject.X, movingObject.Y + 1),
             '<' => new Point(movingObject.X - 1, movingObject.Y),
             '>' => new Point(movingObject.X + 1, movingObject.Y),
+            _ => throw new NotImplementedException(),
         };
 
         var connectedObjects = boxes.Where(b => 

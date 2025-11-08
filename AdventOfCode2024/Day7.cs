@@ -25,10 +25,12 @@ internal static class Day7
             if (!combinationLookup.TryGetValue(operandCount, out var combinations))
             {
                 combinations = [];
+#pragma warning disable CS0162 // Unreachable code detected
                 if (part1)
                     GenerateCombinationsPart1(combinations, "", operandCount);
                 else
                     GenerateCombinationsPart2(combinations, "", operandCount);
+#pragma warning restore CS0162 // Unreachable code detected
 
                 combinationLookup.Add(operandCount, combinations);
             }

@@ -4,27 +4,27 @@ internal static class Day16
 {
     private record Point(int X, int Y);
     private record Location(Point Point, char Direction, int Score);
+    private static readonly char[] Directions = ['^', 'v', '<', '>'];
 
     internal static void Run()
     {
         // https://adventofcode.com/2024/day/16
         var map = File.ReadAllLines("Data/Day16.txt");
+
         var minScore = int.MaxValue;
         Dictionary<(Point, char), int> visitedLocations = [];
-
         Dictionary<(Point Point, char Direction), (Point Point, char Direction)> cameFrom = [];
         PriorityQueue<Location, int> toExplore = new();
         Point start = null!;
         Point finish = null!;
 
-        // locate start and finish
         for (int y = 0; y < map.Length; y++)
         {
             for (int x = 0; x < map[y].Length; x++)
             {
                 if (map[y][x] == 'S')
                     start = new Point(x, y);
-                
+
                 if (map[y][x] == 'E')
                     finish = new Point(x, y);
             }
@@ -40,7 +40,7 @@ internal static class Day16
         {
             var currentLocation = toExplore.Dequeue();
 
-            // skip stale queue entries whose score no longer matches the best-known
+            // skip stale queue entries whose score no longer matches the best known
             if (visitedLocations.TryGetValue((currentLocation.Point, currentLocation.Direction), out var knownScore) && knownScore != currentLocation.Score)
                 continue;
 
@@ -58,10 +58,10 @@ internal static class Day16
             }
         }
 
-        // compute minimal score to reach finish across all facing directions
-        foreach (var dir in new[] { '^', 'v', '<', '>' })
+        // Part 1: find minimal score to reach finish
+        foreach (var direction in Directions)
         {
-            if (visitedLocations.TryGetValue((finish, dir), out var score))
+            if (visitedLocations.TryGetValue((finish, direction), out var score))
                 minScore = Math.Min(minScore, score);
         }
 
@@ -71,84 +71,72 @@ internal static class Day16
             return;
         }
 
-        // Reverse Dijkstra: compute minimal cost from any state to the finish (distToFinish)
-        var distToFinish = new Dictionary<(Point, char), int>();
-        var reversePQ = new PriorityQueue<(Point Point, char Direction), int>();
+        var distanceToFinish = new Dictionary<(Point, char), int>();
+        var backtrackSteps = new PriorityQueue<(Point Point, char Direction), int>();
 
-        // initialize distances to infinity
-        foreach (var kv in visitedLocations)
-            distToFinish[kv.Key] = int.MaxValue;
+        foreach (var visitedLocation in visitedLocations)
+            distanceToFinish[visitedLocation.Key] = int.MaxValue;
 
-        // seed with finish states (cost 0 to be at finish)
-        foreach (var dir in new[] { '^', 'v', '<', '>' })
+        // Set finish state to 0
+        foreach (var direction in Directions)
         {
-            var key = (finish, dir);
-            if (distToFinish.ContainsKey(key))
+            var key = (finish, direction);
+            if (distanceToFinish.ContainsKey(key))
             {
-                distToFinish[key] = 0;
-                reversePQ.Enqueue(key, 0);
+                distanceToFinish[key] = 0;
+                backtrackSteps.Enqueue(key, 0);
             }
         }
 
-        while (reversePQ.Count > 0)
+        while (backtrackSteps.Count > 0)
         {
-            var current = reversePQ.Dequeue();
-            var curDist = distToFinish[current];
+            var currentLocation = backtrackSteps.Dequeue();
+            var curDist = distanceToFinish[currentLocation];
 
-            // consider predecessors that can move to `current`
-            foreach (var pred in GetReversePredecessors(map, current.Point, current.Direction))
+            foreach (var pred in GetReversePredecessors(map, currentLocation.Point, currentLocation.Direction))
             {
-                var predKey = (pred.Point, pred.Direction);
-                // cost from pred -> current
-                var cost = 1 + (pred.Direction == current.Direction ? 0 : 1000);
-                var tentative = curDist + cost;
-                if (!distToFinish.TryGetValue(predKey, out var existing) || tentative < existing)
+                var tentativeScore = curDist + 1 + (pred.Direction == currentLocation.Direction ? 0 : 1000);
+                var predecessorKey = (pred.Point, pred.Direction);
+
+                if (!distanceToFinish.TryGetValue(predecessorKey, out var existing) || tentativeScore < existing)
                 {
-                    distToFinish[predKey] = tentative;
-                    reversePQ.Enqueue(predKey, tentative);
+                    distanceToFinish[predecessorKey] = tentativeScore;
+                    backtrackSteps.Enqueue(predecessorKey, tentativeScore);
                 }
             }
         }
 
-        // collect all points that lie on any optimal path: distStart[state] + distToFinish[state] == minScore
         var tilesOnBest = new HashSet<Point>();
-        foreach (var kv in visitedLocations)
+        foreach (var location in visitedLocations)
         {
-            var state = kv.Key;
-            var dStart = kv.Value;
-            if (!distToFinish.TryGetValue(state, out var dEnd) || dEnd == int.MaxValue)
+            if (!distanceToFinish.TryGetValue(location.Key, out var distanceToEnd) || distanceToEnd == int.MaxValue)
                 continue;
 
-            if (dStart + dEnd == minScore)
-                tilesOnBest.Add(state.Item1);
+            if (location.Value + distanceToEnd == minScore)
+                tilesOnBest.Add(location.Key.Item1);
         }
 
-        // For visualization, reconstruct a single best path (pick any facing at finish with minScore)
+        //Draw(map, start, finish, visitedLocations, cameFrom, minScore);
+        Console.WriteLine($"Part 1: {minScore}");
+        Console.WriteLine($"Part 2: {tilesOnBest.Count}");
+    }
+    
+    private static void Draw(
+        string[] map,
+        Point start, Point finish, Dictionary<(Point, char), int> visitedLocations,
+        Dictionary<(Point Point, char Direction), (Point Point, char Direction)> cameFrom,
+        int minScore)
+    {
         List<Point> bestPathNodes = [];
-        foreach (var dir in new[] { '^', 'v', '<', '>' })
+        foreach (var direction in Directions)
         {
-            if (visitedLocations.TryGetValue((finish, dir), out var score) && score == minScore)
+            if (visitedLocations.TryGetValue((finish, direction), out var score) && score == minScore)
             {
-                bestPathNodes = ReconstructPathPoints(cameFrom, start, new Location(finish, dir, score));
+                bestPathNodes = ReconstructPathPoints(cameFrom, start, new Location(finish, direction, score));
                 break;
             }
         }
 
-        Draw(map, start, finish, bestPathNodes);
-        Console.WriteLine($"Part 1: {minScore}");
-        Console.WriteLine($"Part 2: {tilesOnBest.Count}");
-    }
-
-    private static char GetDirection(Point current, Point next)
-    {
-        if (current.X == next.X)
-            return current.Y < next.Y ? 'v' : '^';
-        
-        return current.X < next.X ? '>' : '<';
-    }
-
-    private static void Draw(string[] map, Point start, Point finish, List<Point> bestPathNodes)
-    {
         for (int y = 0; y < map.Length; y++)
         {
             for (int x = 0; x < map[y].Length; x++)
@@ -199,7 +187,8 @@ internal static class Day16
     }
 
     private static List<Point> ReconstructPathPoints(
-        Dictionary<(Point Point, char Direction), (Point Point, char Direction)> cameFrom,
+        Dictionary<(Point Point, char Direction),
+        (Point Point, char Direction)> cameFrom,
         Point startPoint,
         Location currentLocation)
     {
@@ -220,167 +209,47 @@ internal static class Day16
 
         path.Add(startPoint);
         path.Reverse();
+        
         return path;
     }
 
-    // For reverse Dijkstra: find all predecessor states (point + direction) that can move to (point,direction)
-    private static List<(Point Point, char Direction)> GetReversePredecessors(string[] map, Point point, char direction)
+    private static List<(Point Point, char Direction)> GetReversePredecessors(string[] map, Point point, char currentDirection)
     {
-        // A predecessor is a state (p, dir) such that one of its neighbours equals `point` with direction `direction`.
-        // So we check the four adjacent tiles and, for each, determine if moving from that tile into `point` would produce the desired `direction`.
-        var preds = new List<(Point, char)>();
+        var backstepNeighbours = new List<(Point, char)>();
 
-        // up -> predecessor is (point.X, point.Y-1) moving 'v' into point
-        var up = new Point(point.X, point.Y - 1);
-        if (IsWalkable(map, up) && direction == '^' /* arriving facing up means previous moved down? */)
+        List<Point> nextSteps = [
+            new Point(point.X, point.Y - 1),
+            new Point(point.X, point.Y + 1),
+            new Point(point.X - 1, point.Y),
+            new Point(point.X + 1, point.Y)];
+
+        foreach (var step in nextSteps)
         {
-            // If the predecessor was at up and moved down into point, then its neighbour direction is 'v'
-            preds.Add((up, 'v'));
-        }
-
-        // down -> predecessor is (point.X, point.Y+1)
-        var down = new Point(point.X, point.Y + 1);
-        if (IsWalkable(map, down) && direction == 'v')
-        {
-            preds.Add((down, '^'));
-        }
-
-        // left -> predecessor is (point.X-1, point.Y)
-        var left = new Point(point.X - 1, point.Y);
-        if (IsWalkable(map, left) && direction == '<')
-        {
-            preds.Add((left, '>'));
-        }
-
-        // right -> predecessor is (point.X+1, point.Y)
-        var right = new Point(point.X + 1, point.Y);
-        if (IsWalkable(map, right) && direction == '>')
-        {
-            preds.Add((right, '<'));
-        }
-
-        // The above logic attempted to infer predecessor facing, but a safer approach is to enumerate all four adjacent positions
-        // and all possible facing states, then filter by whether moving from that state to `point` yields (point,direction).
-        // For simplicity and correctness, regenerate by checking all four adjacent tiles and all four facings.
-        preds.Clear();
-        var adj = new[] { up, down, left, right };
-        var facings = new[] { '^', 'v', '<', '>' };
-
-        foreach (var p in adj)
-        {
-            if (!IsWalkable(map, p)) continue;
-            foreach (var f in facings)
-            {
-                // if from state (p,f) one of its neighbours is (point,direction)
-                var neighbours = GetNeighbours(map, p, f);
-                foreach (var n in neighbours)
-                {
-                    if (n.Point == point && n.Direction == direction)
-                        preds.Add((p, f));
-                }
-            }
-        }
-
-        return preds;
-    }
-
-    private static bool IsWalkable(string[] map, Point p)
-    {
-        if (p.Y < 0 || p.Y >= map.Length)
-            return false;
-        if (p.X < 0 || p.X >= map[p.Y].Length)
-            return false;
-            
-        return map[p.Y][p.X] != '#';
-    }
-
-    private static int ComputeScoreFromPath(List<Point> pathPoints, char initialFacing)
-    {
-        if (pathPoints == null || pathPoints.Count == 0) return int.MaxValue;
-
-        var score = 0;
-        var facing = initialFacing;
-
-        for (int i = 1; i < pathPoints.Count; i++)
-        {
-            var prev = pathPoints[i - 1];
-            var cur = pathPoints[i];
-            var moveDir = GetDirection(prev, cur);
-            if (moveDir != facing)
-                score += 1000;
-
-            facing = moveDir;
-            score += 1;
-        }
-
-        if (facing != '>') score += 1000;
-        return score;
-    }
-
-    private static int RebuildPath(
-        Dictionary<(Point Point, char Direction), (Point Point, char Direction)> cameFrom,
-        Point startPoint,
-        Point current,
-        char direction)
-    {
-        var score = 0;
-
-        while (current != startPoint)
-        {
-            // Try to find the previous entry using the exact (current, direction) key first.
-            var key = (current, direction);
-
-            if (!cameFrom.TryGetValue(key, out (Point Point, char Direction) previousEntry))
-            {
-                // Fallback: find any entry for this point (may occur if directions differ)
-                bool found = false;
-                foreach (var k in cameFrom.Keys)
-                {
-                    if (k.Point == current)
-                    {
-                        previousEntry = cameFrom[k];
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                    throw new InvalidOperationException($"No predecessor found for point {current}");
-            }
-
-            var previousPoint = previousEntry.Point;
-            // movement direction from previous -> current
-            var movementDir = GetDirection(previousPoint, current);
-
-            if (direction != movementDir)
-                score += 1000;
-
-            direction = movementDir;
-            current = previousPoint;
-            score++;
-        }
-
-        if (direction != '>')
-            score += 1000;
-
-        return score;
-    }
-
-    private static List<Point> GetBestPathNodes(
-        List<Point> bestPathNodes,
-        Dictionary<Point, List<Point>> cameFrom,
-        Point startPoint,
-        Point current)
-    {
-        foreach (var node in cameFrom[current])
-        {
-            if (bestPathNodes.Contains(node) || node == startPoint)
+            if (!CanMove(map, step))
                 continue;
 
-            bestPathNodes.Add(node);
-            bestPathNodes.AddRange(GetBestPathNodes(bestPathNodes, cameFrom, startPoint, node));
+            foreach (var possibleDirection in Directions)
+            {
+                var neighbours = GetNeighbours(map, step, possibleDirection);
+                foreach (var neighbour in neighbours)
+                {
+                    if (neighbour.Point == point && neighbour.Direction == currentDirection)
+                        backstepNeighbours.Add((step, possibleDirection));
+                }
+            }
         }
 
-        return bestPathNodes.Distinct().ToList();
+        return backstepNeighbours;
+    }
+
+    private static bool CanMove(string[] map, Point location)
+    {
+        if (location.Y < 0 || location.Y >= map.Length)
+            return false;
+            
+        if (location.X < 0 || location.X >= map[location.Y].Length)
+            return false;
+            
+        return map[location.Y][location.X] != '#';
     }
 }
